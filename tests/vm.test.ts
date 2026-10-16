@@ -1,12 +1,154 @@
-import test from 'node:test';import assert from 'node:assert/strict';
-import {createMachine,step,execute,certify,validateProgram,OPS} from '../src/vm';import {puzzles,route} from '../src/puzzles';import {readSave} from '../src/storage';
-test('every authored solution certifies every batch and meets both goals',()=>{for(const p of puzzles){const r=certify(p.solution,p);assert.equal(r.ok,true,`${p.id}: ${r.message}`);assert.ok(p.solution.length<=p.size);assert.ok(r.worstSteps<=p.steps,`${p.id} steps ${r.worstSteps}`);}});
-test('single-step shows one carried value, consuming output and preserving source state',()=>{const b={input:[7],output:[7]},p=route('INBOX;OUTBOX');const start=createMachine([null]);const held=step(start,p,b);assert.equal(start.hands,null);assert.equal(held.hands,7);assert.equal(held.pc,1);const delivered=step(held,p,b);assert.equal(delivered.hands,null);assert.deepEqual(delivered.output,[7]);assert.equal(delivered.steps,2);});
-test('inbox exhaustion halts, replacing held box when another input exists',()=>{const s=execute(route('INBOX;INBOX;OUTBOX'),{input:[4,9],output:[9]},[]);assert.equal(s.status,'halted');assert.equal(execute(route('INBOX;OUTBOX;JUMP L1'),{input:[],output:[]},[]).steps,1);});
-test('empty hands and memory produce actionable errors',()=>{for(const op of ['OUTBOX','COPYTO 0','ADD 0','SUB 0','JUMPZ L1','JUMPN L1'])assert.match(execute(route(op),{input:[],output:[]},[1]).message,/empty hands/);for(const op of ['COPYFROM 0','BUMPUP 0','BUMPDN 0'])assert.match(execute(route(op),{input:[],output:[]},[null]).message,/floor 0 is empty/);});
-test('copy, arithmetic and bumps preserve authentic accumulator semantics',()=>{let s=execute(route('INBOX;COPYTO 0;OUTBOX;BUMPUP 0;OUTBOX;BUMPDN 0;OUTBOX;COPYFROM 0;SUB 0;OUTBOX'),{input:[3],output:[3,4,3,0]},[null]);assert.equal(s.status,'halted');assert.deepEqual(s.floor,[3]);s=execute(route('INBOX;COPYTO 0;ADD 0;OUTBOX'),{input:[-3],output:[-6]},[null]);assert.equal(s.status,'halted');});
-test('jumps use stable labels after reorder and retain hands',()=>{const p=route('INBOX;JUMPN L4;OUTBOX;JUMP L1');assert.equal(execute(p,{input:[-2,5],output:[5]},[]).status,'halted');assert.equal(execute(route('INBOX;JUMPZ L4;OUTBOX;INBOX'),{input:[0],output:[]},[]).status,'halted');const reordered=route('JUMP L3;OUTBOX;INBOX');assert.equal(step(createMachine([]),reordered,{input:[3],output:[]}).pc,2);});
-test('outbox rejects wrong, extra, missing and hardcoded output',()=>{assert.match(execute(route('INBOX;OUTBOX'),{input:[2],output:[3]},[]).message,/expected 3/);assert.match(execute(route('INBOX;OUTBOX'),{input:[2],output:[]},[]).message,/no more boxes/);assert.match(execute([],{input:[1],output:[1]},[]).message,/Missing output/);assert.equal(certify(route('INBOX;OUTBOX'),puzzles[0]!).ok,false);});
-test('validation rejects missing labels, unavailable commands and invalid tiles',()=>{assert.match(validateProgram(route('JUMP L9'),OPS,2)!,/jump label/);assert.match(validateProgram(route('COPYTO -1'),OPS,2)!,/floor tile/);assert.match(validateProgram(route('ADD 0'),['INBOX'],2)!,/unavailable/);});
-test('loop budget and overflow fail deterministically',()=>{const loop=execute(route('JUMP L1'),{input:[],output:[]},[]);assert.equal(loop.steps,10000);assert.equal(loop.status,'error');assert.match(execute(route('BUMPUP 0'),{input:[],output:[]},[999]).message,/overflow/);});
-test('save loading rejects malformed data and preserves valid routes',()=>{assert.deepEqual(readSave('{bad',['relay']).completed,[]);const r=route('INBOX');assert.deepEqual(readSave(JSON.stringify({programs:{relay:r},completed:['relay','unknown'],selected:'relay'}),['relay']).programs.relay,r);assert.deepEqual(readSave(JSON.stringify({programs:{relay:[{id:'x',op:'EXEC',arg:0}]}}),['relay']).programs,{});});
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+  createMachine,
+  step,
+  execute,
+  certify,
+  validateProgram,
+  OPS,
+} from "../src/vm";
+import { puzzles, route } from "../src/puzzles";
+import { readSave } from "../src/storage";
+test("every authored solution certifies every batch and meets both goals", () => {
+  for (const p of puzzles) {
+    const r = certify(p.solution, p);
+    assert.equal(r.ok, true, `${p.id}: ${r.message}`);
+    assert.ok(p.solution.length <= p.size);
+    assert.ok(r.worstSteps <= p.steps, `${p.id} steps ${r.worstSteps}`);
+  }
+});
+test("single-step shows one carried value, consuming output and preserving source state", () => {
+  const b = { input: [7], output: [7] },
+    p = route("INBOX;OUTBOX");
+  const start = createMachine([null]);
+  const held = step(start, p, b);
+  assert.equal(start.hands, null);
+  assert.equal(held.hands, 7);
+  assert.equal(held.pc, 1);
+  const delivered = step(held, p, b);
+  assert.equal(delivered.hands, null);
+  assert.deepEqual(delivered.output, [7]);
+  assert.equal(delivered.steps, 2);
+});
+test("inbox exhaustion halts, replacing held box when another input exists", () => {
+  const s = execute(
+    route("INBOX;INBOX;OUTBOX"),
+    { input: [4, 9], output: [9] },
+    [],
+  );
+  assert.equal(s.status, "halted");
+  assert.equal(
+    execute(route("INBOX;OUTBOX;JUMP L1"), { input: [], output: [] }, []).steps,
+    1,
+  );
+});
+test("empty hands and memory produce actionable errors", () => {
+  for (const op of [
+    "OUTBOX",
+    "COPYTO 0",
+    "ADD 0",
+    "SUB 0",
+    "JUMPZ L1",
+    "JUMPN L1",
+  ])
+    assert.match(
+      execute(route(op), { input: [], output: [] }, [1]).message,
+      /empty hands/,
+    );
+  for (const op of ["COPYFROM 0", "BUMPUP 0", "BUMPDN 0"])
+    assert.match(
+      execute(route(op), { input: [], output: [] }, [null]).message,
+      /floor 0 is empty/,
+    );
+});
+test("copy, arithmetic and bumps preserve authentic accumulator semantics", () => {
+  let s = execute(
+    route(
+      "INBOX;COPYTO 0;OUTBOX;BUMPUP 0;OUTBOX;BUMPDN 0;OUTBOX;COPYFROM 0;SUB 0;OUTBOX",
+    ),
+    { input: [3], output: [3, 4, 3, 0] },
+    [null],
+  );
+  assert.equal(s.status, "halted");
+  assert.deepEqual(s.floor, [3]);
+  s = execute(
+    route("INBOX;COPYTO 0;ADD 0;OUTBOX"),
+    { input: [-3], output: [-6] },
+    [null],
+  );
+  assert.equal(s.status, "halted");
+});
+test("jumps use stable labels after reorder and retain hands", () => {
+  const p = route("INBOX;JUMPN L4;OUTBOX;JUMP L1");
+  assert.equal(
+    execute(p, { input: [-2, 5], output: [5] }, []).status,
+    "halted",
+  );
+  assert.equal(
+    execute(
+      route("INBOX;JUMPZ L4;OUTBOX;INBOX"),
+      { input: [0], output: [] },
+      [],
+    ).status,
+    "halted",
+  );
+  const reordered = route("JUMP L3;OUTBOX;INBOX");
+  assert.equal(
+    step(createMachine([]), reordered, { input: [3], output: [] }).pc,
+    2,
+  );
+});
+test("outbox rejects wrong, extra, missing and hardcoded output", () => {
+  assert.match(
+    execute(route("INBOX;OUTBOX"), { input: [2], output: [3] }, []).message,
+    /expected 3/,
+  );
+  assert.match(
+    execute(route("INBOX;OUTBOX"), { input: [2], output: [] }, []).message,
+    /no more boxes/,
+  );
+  assert.match(
+    execute([], { input: [1], output: [1] }, []).message,
+    /Missing output/,
+  );
+  assert.equal(certify(route("INBOX;OUTBOX"), puzzles[0]!).ok, false);
+});
+test("validation rejects missing labels, unavailable commands and invalid tiles", () => {
+  assert.match(validateProgram(route("JUMP L9"), OPS, 2)!, /jump label/);
+  assert.match(validateProgram(route("COPYTO -1"), OPS, 2)!, /floor tile/);
+  assert.match(validateProgram(route("ADD 0"), ["INBOX"], 2)!, /unavailable/);
+});
+test("loop budget and overflow fail deterministically", () => {
+  const loop = execute(route("JUMP L1"), { input: [], output: [] }, []);
+  assert.equal(loop.steps, 10000);
+  assert.equal(loop.status, "error");
+  assert.match(
+    execute(route("BUMPUP 0"), { input: [], output: [] }, [999]).message,
+    /overflow/,
+  );
+});
+test("save loading rejects malformed data and preserves valid routes", () => {
+  assert.deepEqual(readSave("{bad", ["relay"]).completed, []);
+  const r = route("INBOX");
+  assert.deepEqual(
+    readSave(
+      JSON.stringify({
+        programs: { relay: r },
+        completed: ["relay", "unknown"],
+        selected: "relay",
+      }),
+      ["relay"],
+    ).programs.relay,
+    r,
+  );
+  assert.deepEqual(
+    readSave(
+      JSON.stringify({
+        programs: { relay: [{ id: "x", op: "EXEC", arg: 0 }] },
+      }),
+      ["relay"],
+    ).programs,
+    {},
+  );
+});
