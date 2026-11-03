@@ -46,3 +46,7 @@ The authoritative [Tomorrow Corporation game page](https://tomorrowcorporation.c
 `.gitignore` combines the complete official github/gitignore Global Linux, Windows and macOS templates, downloaded without modification, plus Node/Vite/Playwright ignores. Sources and MIT notices are retained under `docs/gitignore/`.
 
 MIT licensed; see [LICENSE](LICENSE).
+
+## Play online
+
+[Play on GitHub Pages](https://intrepion.github.io/kata-inspired-by-human-resource-machine-codex-dot/). Return to the [Kata Arcade](https://intrepion.github.io/).
