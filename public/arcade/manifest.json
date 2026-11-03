@@ -1,6 +1,27 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "gameId": "kata-inspired-by-human-resource-machine-codex-dot",
   "playUrl": "https://intrepion.github.io/kata-inspired-by-human-resource-machine-codex-dot/",
-  "screenshots": []
+  "screenshots": [
+    {
+      "path": "arcade/screenshots/ci-20261103-01.jpg",
+      "sha256": "a7fa251beddb8e753862289bd4d67be50ea40a3429c0eafdbced6efcc8306cb7",
+      "alt": "Copperline Dispatch gameplay",
+      "provenance": {
+        "kind": "ci_gameplay_capture",
+        "sourcePath": "arcade/capture-evidence/ci-20261103-01.png",
+        "sourceSha256": "1b35ea18a54b56df0249b50a9f1c74221a1dca30e5da74f0710ee2230dc9d343",
+        "captureCommit": "10719e3ed36425a787a2e70a74a5e498ed20c5c2",
+        "workflowRunId": "41618865988",
+        "inputHashes": {
+          "assets/index-99XRFPbu.js": "dc80846e9c77efd0cc4e2a920b0403e5c45b836767aa9dc33cd0562fcc83fb3e",
+          "assets/index-aLf4l8CQ.css": "bf8b5048f7d1dcd1a2079aee965d0cb428bbb4336fe2abd20187c7f588219b20",
+          "index.html": "4b7712ea344786e30ae9a7aeaf6ead9c2b2407a53799d25750ccd487999c36f5"
+        },
+        "publishedFilesVerifiedAt": "2026-11-03T10:25:07Z",
+        "captureRecordPath": "arcade/capture-evidence/ci-20261103-record.json",
+        "captureRecordSha256": "0497a33a664ba41c674f84cb55719e273c17516f2912cb4987d30a03908dd184"
+      }
+    }
+  ]
 }
